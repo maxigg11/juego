@@ -6,6 +6,7 @@
 <title>Realm of Shadows — Jugando</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#050810;overflow:hidden;font-family:'Outfit',sans-serif;user-select:none;}
@@ -93,6 +94,18 @@ body{background:#050810;overflow:hidden;font-family:'Outfit',sans-serif;user-sel
 #death-text.visible{opacity:1;}
 #respawn-timer{font-size:1.1rem;color:rgba(255,255,255,.7);margin-top:.5rem;opacity:0;transition:opacity .5s;}
 #respawn-timer.visible{opacity:1;}
+
+/* Joystick Styles */
+#joystick-zone { position:absolute; left:0; bottom:0; width:50vw; height:50vh; z-index:5; pointer-events:none; }
+
+@media (max-width: 800px), (pointer: coarse) {
+  #joystick-zone { pointer-events:all; }
+  #controls-hint { display:none; }
+  #chat-wrap { bottom: auto; top: 120px; left: 16px; width: 260px; pointer-events:none; }
+  #chat-log { height: 100px; background:rgba(5,8,16,0.6); pointer-events:all; }
+  #chat-input-wrap { display:none; /* Ocultar el input de chat en movil para no estorbar el joystick, a menos que el usuario lo abra explicitamente (requiere más lógica) */ }
+}
+
 </style>
 </head>
 <body>
@@ -149,6 +162,9 @@ body{background:#050810;overflow:hidden;font-family:'Outfit',sans-serif;user-sel
     <div id="death-text">💀 HAS MUERTO 💀</div>
     <div id="respawn-timer"></div>
   </div>
+
+  <!-- Joystick Zone -->
+  <div id="joystick-zone"></div>
 </div>
 
 <script src="js/network.js"></script>
@@ -165,6 +181,29 @@ body{background:#050810;overflow:hidden;font-family:'Outfit',sans-serif;user-sel
     const wsUrl = protocol + window.location.host;
     GameNetwork.connect(wsUrl, name, cls, () => {
       GameMain.start();
+      
+      // Init Joystick if touch is detected
+      if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+        const joystickZone = document.getElementById('joystick-zone');
+        const manager = nipplejs.create({
+          zone: joystickZone,
+          mode: 'static',
+          position: { left: '80px', bottom: '80px' },
+          color: 'rgba(255, 255, 255, 0.5)'
+        });
+
+        manager.on('move', (evt, data) => {
+          if (data && data.vector) {
+            GameMain.joystickVector.x = data.vector.x;
+            GameMain.joystickVector.y = -data.vector.y; // En canvas la Y disminuye hacia arriba
+          }
+        });
+
+        manager.on('end', () => {
+          GameMain.joystickVector.x = 0;
+          GameMain.joystickVector.y = 0;
+        });
+      }
     });
   });
 </script>

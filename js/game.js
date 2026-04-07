@@ -42,7 +42,7 @@ const GameMain = (() => {
   const cam = { x: 0, y: 0 };
 
   // Expose for ui.js
-  const pub = { chatFocused: false, players, get localId(){ return localId; } };
+  const pub = { chatFocused: false, players, get localId(){ return localId; }, joystickVector: { x: 0, y: 0 } };
 
   /* ─── NETWORK HANDLERS ─── */
   function setupNetwork() {
@@ -213,12 +213,21 @@ const GameMain = (() => {
   function processInput(dt) {
     if (!localPlayer || localPlayer.dead || pub.chatFocused) return;
     let dx = 0, dy = 0;
-    if (keys['w'] || keys['arrowup'])    dy = -1;
-    if (keys['s'] || keys['arrowdown'])  dy =  1;
-    if (keys['a'] || keys['arrowleft'])  dx = -1;
-    if (keys['d'] || keys['arrowright']) dx =  1;
+    if (keys['w'] || keys['arrowup'])    dy -= 1;
+    if (keys['s'] || keys['arrowdown'])  dy += 1;
+    if (keys['a'] || keys['arrowleft'])  dx -= 1;
+    if (keys['d'] || keys['arrowright']) dx += 1;
 
-    if (dx !== 0 && dy !== 0) { dx *= 0.707; dy *= 0.707; }
+    if (dx !== 0 && dy !== 0) {
+      const len = Math.hypot(dx, dy);
+      dx /= len;
+      dy /= len;
+    }
+
+    if (pub.joystickVector && (pub.joystickVector.x !== 0 || pub.joystickVector.y !== 0)) {
+      dx = pub.joystickVector.x;
+      dy = pub.joystickVector.y;
+    }
 
     const moving = dx !== 0 || dy !== 0;
     if (moving) {
@@ -681,5 +690,5 @@ const GameMain = (() => {
     requestAnimationFrame(loop);
   }
 
-  return { start, chatFocused: false, get players() { return players; }, get localId() { return localId; } };
+  return { start, chatFocused: false, get players() { return players; }, get localId() { return localId; }, get joystickVector() { return pub.joystickVector; } };
 })();
