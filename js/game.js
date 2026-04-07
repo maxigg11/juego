@@ -42,7 +42,13 @@ const GameMain = (() => {
   const cam = { x: 0, y: 0 };
 
   // Expose for ui.js
-  const pub = { chatFocused: false, players, get localId(){ return localId; }, joystickVector: { x: 0, y: 0 } };
+  const pub = { 
+    chatFocused: false, 
+    players, 
+    get localId(){ return localId; }, 
+    joystickVector: { x: 0, y: 0 },
+    attackNearest: () => {} 
+  };
 
   /* ─── NETWORK HANDLERS ─── */
   function setupNetwork() {
@@ -182,6 +188,35 @@ const GameMain = (() => {
         }
       }
     });
+
+    pub.attackNearest = () => {
+      if (!localPlayer || localPlayer.dead) return;
+      let closestId = null, minD = Infinity;
+
+      for (const [id, en] of Object.entries(enemies)) {
+        if (en.dead) continue;
+        const d = Math.hypot(localPlayer.x - en.x, localPlayer.y - en.y);
+        if (d < minD && d < (localPlayer.atkRange || 150) + 20) {
+          minD = d;
+          closestId = id;
+        }
+      }
+      
+      if (!closestId) {
+        for (const [id, pl] of Object.entries(players)) {
+          if (id === localId || pl.dead) continue;
+          const d = Math.hypot(localPlayer.x - pl.x, localPlayer.y - pl.y);
+          if (d < minD && d < (localPlayer.atkRange || 150) + 20) {
+            minD = d;
+            closestId = id;
+          }
+        }
+      }
+
+      if (closestId) {
+        GameNetwork.sendAttack(closestId);
+      }
+    };
   }
 
   /* ─── PARTICLES ─── */
@@ -690,5 +725,5 @@ const GameMain = (() => {
     requestAnimationFrame(loop);
   }
 
-  return { start, chatFocused: false, get players() { return players; }, get localId() { return localId; }, get joystickVector() { return pub.joystickVector; } };
+  return { start, chatFocused: false, get players() { return players; }, get localId() { return localId; }, get joystickVector() { return pub.joystickVector; }, attackNearest: () => pub.attackNearest() };
 })();
