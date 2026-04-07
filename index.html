@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realm of Shadows — MMORPG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --gold:#f5c842;--gold2:#c9952a;
+  --dark:#050810;--dark2:#0a0f1e;--dark3:#111827;
+  --warrior:#e74c3c;--mage:#9b59b6;--archer:#27ae60;
+  --glass:rgba(255,255,255,0.04);--border:rgba(255,255,255,0.08);
+}
+body{background:var(--dark);font-family:'Outfit',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+canvas#bg{position:fixed;inset:0;z-index:0;}
+
+.panel{position:relative;z-index:1;width:min(860px,96vw);padding:2.5rem;
+  background:rgba(5,8,16,0.85);border:1px solid var(--border);
+  border-radius:20px;backdrop-filter:blur(20px);
+  box-shadow:0 0 80px rgba(100,50,200,0.15),0 0 0 1px var(--border);}
+
+h1{font-family:'Cinzel',serif;font-size:clamp(1.8rem,4vw,3rem);font-weight:900;
+  text-align:center;letter-spacing:4px;margin-bottom:.3rem;
+  background:linear-gradient(135deg,#f5c842,#ff6b6b,#a855f7);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 30px rgba(168,85,247,0.5));}
+.subtitle{text-align:center;color:rgba(255,255,255,0.4);font-size:.9rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:2rem;}
+
+.form-row{display:flex;gap:1rem;margin-bottom:1.5rem;align-items:center;flex-wrap:wrap;}
+label{color:rgba(255,255,255,0.6);font-size:.85rem;letter-spacing:1px;text-transform:uppercase;white-space:nowrap;}
+input[type=text]{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+  border-radius:10px;padding:.75rem 1rem;color:#fff;font-family:'Outfit',sans-serif;font-size:1rem;outline:none;
+  transition:all .3s;}
+input[type=text]:focus{border-color:var(--gold);box-shadow:0 0 20px rgba(245,200,66,0.2);}
+input[type=text]::placeholder{color:rgba(255,255,255,0.25);}
+
+.class-title{color:rgba(255,255,255,0.6);font-size:.85rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:.75rem;}
+.classes{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:2rem;}
+.class-card{border:2px solid var(--border);border-radius:14px;padding:1.25rem;cursor:pointer;
+  background:var(--glass);transition:all .3s;text-align:center;position:relative;overflow:hidden;}
+.class-card::before{content:'';position:absolute;inset:0;opacity:0;transition:.3s;border-radius:12px;}
+.class-card.warrior::before{background:linear-gradient(135deg,rgba(231,76,60,.15),transparent);}
+.class-card.mage::before{background:linear-gradient(135deg,rgba(155,89,182,.15),transparent);}
+.class-card.archer::before{background:linear-gradient(135deg,rgba(39,174,96,.15),transparent);}
+.class-card:hover::before,.class-card.selected::before{opacity:1;}
+.class-card.selected{border-color:var(--card-color)!important;box-shadow:0 0 25px var(--glow);}
+.class-card.warrior{--card-color:var(--warrior);--glow:rgba(231,76,60,.4);}
+.class-card.mage{--card-color:var(--mage);--glow:rgba(155,89,182,.4);}
+.class-card.archer{--card-color:var(--archer);--glow:rgba(39,174,96,.4);}
+.class-icon{font-size:2.5rem;margin-bottom:.5rem;display:block;}
+.class-name{font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.75rem;}
+.class-stat{display:flex;justify-content:space-between;font-size:.78rem;color:rgba(255,255,255,0.55);margin:.2rem 0;}
+.class-stat span:last-child{color:rgba(255,255,255,.85);}
+.stat-bar{width:100%;height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin-top:.2rem;}
+.stat-fill{height:100%;border-radius:2px;transition:width .5s;}
+.warrior .stat-fill.hp{background:var(--warrior);width:90%;}
+.warrior .stat-fill.atk{background:#ff8c42;width:55%;}
+.warrior .stat-fill.spd{background:#f5c842;width:45%;}
+.mage .stat-fill.hp{background:var(--mage);width:50%;}
+.mage .stat-fill.atk{background:#ff6b9d;width:90%;}
+.mage .stat-fill.spd{background:#f5c842;width:65%;}
+.archer .stat-fill.hp{background:var(--archer);width:65%;}
+.archer .stat-fill.atk{background:#42d4f4;width:70%;}
+.archer .stat-fill.spd{background:#f5c842;width:90%;}
+.badge{display:inline-block;padding:.15rem .5rem;border-radius:20px;font-size:.7rem;font-weight:600;letter-spacing:1px;margin-top:.5rem;}
+.warrior .badge{background:rgba(231,76,60,.2);color:var(--warrior);}
+.mage .badge{background:rgba(155,89,182,.2);color:var(--mage);}
+.archer .badge{background:rgba(39,174,96,.2);color:var(--archer);}
+
+#btn-enter{width:100%;padding:1rem;font-family:'Cinzel',serif;font-size:1.1rem;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;border:none;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,var(--gold2),var(--gold),var(--gold2));
+  color:#1a0a00;transition:all .3s;position:relative;overflow:hidden;}
+#btn-enter:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(245,200,66,.5);}
+#btn-enter:active{transform:translateY(0);}
+#btn-enter:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+#status{text-align:center;margin-top:1rem;font-size:.85rem;color:rgba(255,255,255,.4);min-height:1.2rem;}
+.status-err{color:#e74c3c!important;}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div class="panel">
+  <h1>⚔ REALM OF SHADOWS</h1>
+  <p class="subtitle">Massively Multiplayer Online RPG</p>
+
+  <div class="form-row">
+    <label for="player-name">🧙 Tu nombre:</label>
+    <input type="text" id="player-name" placeholder="Ingresa tu nombre de héroe..." maxlength="16" autocomplete="off">
+  </div>
+
+  <p class="class-title">⚔ Elige tu clase:</p>
+  <div class="classes">
+    <div class="class-card warrior selected" data-class="warrior" id="card-warrior">
+      <span class="class-icon">🛡️</span>
+      <div class="class-name">Guerrero</div>
+      <div class="class-stat"><span>❤️ Vida</span><span>150</span></div>
+      <div class="stat-bar"><div class="stat-fill hp"></div></div>
+      <div class="class-stat"><span>⚔️ Ataque</span><span>15</span></div>
+      <div class="stat-bar"><div class="stat-fill atk"></div></div>
+      <div class="class-stat"><span>💨 Velocidad</span><span>95</span></div>
+      <div class="stat-bar"><div class="stat-fill spd"></div></div>
+      <div class="badge">TANQUE</div>
+    </div>
+    <div class="class-card mage" data-class="mage" id="card-mage">
+      <span class="class-icon">🔮</span>
+      <div class="class-name">Mago</div>
+      <div class="class-stat"><span>❤️ Vida</span><span>80</span></div>
+      <div class="stat-bar"><div class="stat-fill hp"></div></div>
+      <div class="class-stat"><span>⚔️ Ataque</span><span>30</span></div>
+      <div class="stat-bar"><div class="stat-fill atk"></div></div>
+      <div class="class-stat"><span>💨 Velocidad</span><span>115</span></div>
+      <div class="stat-bar"><div class="stat-fill spd"></div></div>
+      <div class="badge">ALTO DAÑO</div>
+    </div>
+    <div class="class-card archer" data-class="archer" id="card-archer">
+      <span class="class-icon">🏹</span>
+      <div class="class-name">Arquero</div>
+      <div class="class-stat"><span>❤️ Vida</span><span>100</span></div>
+      <div class="stat-bar"><div class="stat-fill hp"></div></div>
+      <div class="class-stat"><span>⚔️ Ataque</span><span>20</span></div>
+      <div class="stat-bar"><div class="stat-fill atk"></div></div>
+      <div class="class-stat"><span>💨 Velocidad</span><span>135</span></div>
+      <div class="stat-bar"><div class="stat-fill spd"></div></div>
+      <div class="badge">VELOZ</div>
+    </div>
+  </div>
+
+  <button id="btn-enter">⚔ Entrar al Mundo ⚔</button>
+  <p id="status">Servidor: Automático</p>
+</div>
+
+<script>
+/* ── Animated star background ── */
+const bgCanvas=document.getElementById('bg');
+const bctx=bgCanvas.getContext('2d');
+let W,H,stars=[];
+function resize(){W=bgCanvas.width=innerWidth;H=bgCanvas.height=innerHeight;initStars();}
+function initStars(){stars=Array.from({length:160},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.5+.3,spd:Math.random()*.3+.1,op:Math.random()}));}
+function animBg(){
+  bctx.fillStyle='rgba(5,8,16,0.15)';bctx.fillRect(0,0,W,H);
+  stars.forEach(s=>{
+    s.op+=.02*s.spd; if(s.op>1)s.op=0;
+    bctx.beginPath();bctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    bctx.fillStyle=`rgba(200,180,255,${s.op})`;bctx.fill();
+  });
+  // Nebula blobs
+  const t=Date.now()/3000;
+  const g=bctx.createRadialGradient(W*.3+Math.sin(t)*50,H*.4+Math.cos(t)*30,0,W*.3,H*.4,300);
+  g.addColorStop(0,'rgba(100,50,200,0.04)');g.addColorStop(1,'transparent');
+  bctx.fillStyle=g;bctx.fillRect(0,0,W,H);
+  requestAnimationFrame(animBg);
+}
+resize(); window.addEventListener('resize',resize); animBg();
+
+/* ── Class selection ── */
+let selectedClass='warrior';
+document.querySelectorAll('.class-card').forEach(card=>{
+  card.addEventListener('click',()=>{
+    document.querySelectorAll('.class-card').forEach(c=>c.classList.remove('selected'));
+    card.classList.add('selected');
+    selectedClass=card.dataset.class;
+  });
+});
+
+/* ── Enter world ── */
+document.getElementById('btn-enter').addEventListener('click',()=>{
+  const name=document.getElementById('player-name').value.trim();
+  if(!name){document.getElementById('player-name').focus();return;}
+  const btn=document.getElementById('btn-enter');
+  const status=document.getElementById('status');
+  btn.disabled=true; btn.textContent='Conectando...';
+  status.textContent='Conectando al servidor...';
+  // Test WS connection
+  try{
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const wsUrl = protocol + window.location.host;
+    const ws=new WebSocket(wsUrl);
+    ws.onopen=()=>{
+      ws.close();
+      sessionStorage.setItem('playerName',name);
+      sessionStorage.setItem('playerClass',selectedClass);
+      window.location.href='game.html';
+    };
+    ws.onerror=()=>{
+      btn.disabled=false; btn.textContent='⚔ Entrar al Mundo ⚔';
+      status.textContent='❌ No se puede conectar. ¿Está el servidor corriendo?';
+      status.className='status-err';
+    };
+    setTimeout(()=>{if(ws.readyState!==WebSocket.OPEN){ws.close();btn.disabled=false;btn.textContent='⚔ Entrar al Mundo ⚔';status.textContent='❌ Tiempo de conexión agotado';status.className='status-err';}},3000);
+  }catch(e){btn.disabled=false;btn.textContent='⚔ Entrar al Mundo ⚔';status.textContent='❌ Error: '+e.message;status.className='status-err';}
+});
+document.getElementById('player-name').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-enter').click();});
+</script>
+</body>
+</html>

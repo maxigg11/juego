@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Realm of Shadows — Jugando</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#050810;overflow:hidden;font-family:'Outfit',sans-serif;user-select:none;}
+#game-canvas{display:block;width:100vw;height:100vh;}
+
+/* HUD */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:10;}
+
+/* Player Info - Top Left */
+#player-info{position:absolute;top:16px;left:16px;pointer-events:none;
+  background:rgba(5,8,16,0.85);border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;padding:12px 16px;min-width:220px;
+  backdrop-filter:blur(12px);box-shadow:0 4px 30px rgba(0,0,0,.5);}
+#player-info .p-name{font-family:'Cinzel',serif;font-size:1rem;font-weight:700;color:#fff;margin-bottom:2px;}
+#player-info .p-class{font-size:.72rem;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;}
+.cls-warrior{color:#e74c3c;} .cls-mage{color:#9b59b6;} .cls-archer{color:#27ae60;}
+.bar-row{display:flex;align-items:center;gap:8px;margin:3px 0;}
+.bar-label{font-size:.7rem;color:rgba(255,255,255,.5);width:24px;}
+.bar-track{flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .3s;}
+#hp-fill{background:linear-gradient(90deg,#c0392b,#e74c3c);}
+#exp-fill{background:linear-gradient(90deg,#c9952a,#f5c842);}
+.bar-text{font-size:.68rem;color:rgba(255,255,255,.6);width:44px;text-align:right;}
+.level-badge{display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#c9952a,#f5c842);color:#1a0a00;
+  font-family:'Cinzel',serif;font-weight:700;font-size:.75rem;
+  width:28px;height:28px;border-radius:50%;margin-right:6px;flex-shrink:0;}
+.level-row{display:flex;align-items:center;margin-bottom:6px;}
+
+/* Minimap - Top Right */
+#minimap-wrap{position:absolute;top:16px;right:16px;
+  background:rgba(5,8,16,0.85);border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px;padding:10px;backdrop-filter:blur(12px);}
+#minimap-wrap .mm-title{font-size:.65rem;text-transform:uppercase;letter-spacing:2px;
+  color:rgba(255,255,255,.4);text-align:center;margin-bottom:6px;}
+#minimap{border-radius:6px;border:1px solid rgba(255,255,255,.1);}
+
+/* Controls hint - top right below minimap */
+#controls-hint{position:absolute;top:165px;right:16px;
+  background:rgba(5,8,16,0.75);border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;padding:8px 12px;backdrop-filter:blur(8px);font-size:.68rem;color:rgba(255,255,255,.45);}
+#controls-hint div{margin:2px 0;}
+#controls-hint kbd{background:rgba(255,255,255,.1);border-radius:3px;padding:1px 5px;font-size:.65rem;}
+
+/* Chat - Bottom Left */
+#chat-wrap{position:absolute;bottom:16px;left:16px;width:340px;pointer-events:all;}
+#chat-log{height:140px;overflow-y:auto;display:flex;flex-direction:column;gap:3px;
+  padding:10px;background:rgba(5,8,16,0.8);border:1px solid rgba(255,255,255,.08);
+  border-radius:12px 12px 0 0;backdrop-filter:blur(12px);margin-bottom:1px;}
+#chat-log::-webkit-scrollbar{width:4px;}
+#chat-log::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+.chat-msg{font-size:.78rem;line-height:1.4;color:rgba(255,255,255,.75);}
+.chat-msg .cn{font-weight:600;}
+.chat-msg.sys{color:rgba(255,200,80,.6);font-style:italic;}
+.chat-msg.kill{color:rgba(255,100,100,.7);}
+.chat-msg.lvl{color:rgba(100,255,150,.8);font-weight:600;}
+
+#chat-input-wrap{display:flex;gap:6px;}
+#chat-input{flex:1;background:rgba(5,8,16,0.9);border:1px solid rgba(255,255,255,.12);
+  border-radius:0 0 0 10px;padding:8px 12px;color:#fff;font-family:'Outfit',sans-serif;
+  font-size:.82rem;outline:none;transition:border-color .2s;}
+#chat-input:focus{border-color:rgba(245,200,66,.5);}
+#chat-input::placeholder{color:rgba(255,255,255,.25);}
+#chat-send{background:rgba(245,200,66,.15);border:1px solid rgba(245,200,66,.3);
+  border-radius:0 0 10px 0;padding:8px 14px;color:#f5c842;cursor:pointer;
+  font-size:.82rem;transition:all .2s;}
+#chat-send:hover{background:rgba(245,200,66,.25);}
+
+/* Floating notifications (top center) */
+#notif{position:absolute;top:20px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:20;}
+.notif-item{background:rgba(5,8,16,.9);border:1px solid rgba(255,255,255,.15);
+  border-radius:8px;padding:6px 16px;font-size:.85rem;font-weight:600;
+  animation:notifIn .3s ease,notifOut .5s 2.5s ease forwards;}
+@keyframes notifIn{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:none;}}
+@keyframes notifOut{to{opacity:0;transform:translateY(-8px);}}
+
+/* Death overlay */
+#death-overlay{position:absolute;inset:0;background:rgba(0,0,0,0);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  pointer-events:none;transition:background .5s;}
+#death-overlay.active{background:rgba(180,0,0,.25);}
+#death-text{font-family:'Cinzel',serif;font-size:2.5rem;font-weight:900;
+  color:#e74c3c;text-shadow:0 0 40px #e74c3c;opacity:0;transition:opacity .5s;}
+#death-text.visible{opacity:1;}
+#respawn-timer{font-size:1.1rem;color:rgba(255,255,255,.7);margin-top:.5rem;opacity:0;transition:opacity .5s;}
+#respawn-timer.visible{opacity:1;}
+</style>
+</head>
+<body>
+<canvas id="game-canvas"></canvas>
+<div id="hud">
+  <!-- Player Info -->
+  <div id="player-info">
+    <div class="level-row">
+      <div class="level-badge" id="level-badge">1</div>
+      <div>
+        <div class="p-name" id="hud-name">Héroe</div>
+        <div class="p-class cls-warrior" id="hud-class">GUERRERO</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">❤️</span>
+      <div class="bar-track"><div class="bar-fill" id="hp-fill" style="width:100%"></div></div>
+      <span class="bar-text" id="hp-text">150/150</span>
+    </div>
+    <div class="bar-row">
+      <span class="bar-label">✨</span>
+      <div class="bar-track"><div class="bar-fill" id="exp-fill" style="width:0%"></div></div>
+      <span class="bar-text" id="exp-text">0 XP</span>
+    </div>
+  </div>
+
+  <!-- Minimap -->
+  <div id="minimap-wrap">
+    <div class="mm-title">🗺 Mapa</div>
+    <canvas id="minimap" width="120" height="80"></canvas>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls-hint">
+    <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> Mover</div>
+    <div><kbd>Click</kbd> Atacar</div>
+    <div><kbd>Enter</kbd> Chat</div>
+  </div>
+
+  <!-- Chat -->
+  <div id="chat-wrap">
+    <div id="chat-log"></div>
+    <div id="chat-input-wrap">
+      <input type="text" id="chat-input" placeholder="Escribe un mensaje... (Enter)" maxlength="200">
+      <button id="chat-send">Enviar</button>
+    </div>
+  </div>
+
+  <!-- Notifications -->
+  <div id="notif"></div>
+
+  <!-- Death overlay -->
+  <div id="death-overlay">
+    <div id="death-text">💀 HAS MUERTO 💀</div>
+    <div id="respawn-timer"></div>
+  </div>
+</div>
+
+<script src="js/network.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ui.js"></script>
+<script>
+  // Boot
+  window.addEventListener('load', () => {
+    const name = sessionStorage.getItem('playerName');
+    const cls  = sessionStorage.getItem('playerClass');
+    if (!name) { window.location.href = 'index.html'; return; }
+    GameUI.init();
+    const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+    const wsUrl = protocol + window.location.host;
+    GameNetwork.connect(wsUrl, name, cls, () => {
+      GameMain.start();
+    });
+  });
+</script>
+</body>
+</html>
